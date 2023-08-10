@@ -223,7 +223,7 @@ lookupCardId (const char *searchAccessCode) {
 
 		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
 			fclose (cards);
-			return currentCardId;
+			return strdup (currentCardId);
 		}
 	}
 
@@ -244,7 +244,7 @@ addNewCard (const char *accessCode) {
 
 	// Generate chipId as 32-digit version of accessCode
 	char chipId[33];
-	sprintf (chipId, "%032d", accessCode);
+	sprintf (chipId, "%032s", accessCode);
 
 	// Write the new line
 	fseek (file, 0, SEEK_END);
@@ -302,11 +302,13 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 
 	toml_table_t *config = openConfig (configPath ("config.toml"));
 	if (config) {
-		drumMax         = readConfigInt (config, "drumMax", drumMax);
-		drumMin         = readConfigInt (config, "drumMin", drumMin);
-		server          = readConfigString (config, "server", server);
-		accessCode1[21] = readConfigString (config, "card1_access_code", accessCode1);
-		accessCode2[21] = readConfigString (config, "card2_access_code", accessCode1);
+		drumMax = readConfigInt (config, "drumMax", drumMax);
+		drumMin = readConfigInt (config, "drumMin", drumMin);
+		server  = readConfigString (config, "server", server);
+		strncpy (accessCode1, readConfigString (config, "card1_access_code", accessCode1), sizeof (accessCode1) - 1);
+		accessCode1[sizeof (accessCode1) - 1] = '\0'; // Ensure null-termination
+		strncpy (accessCode2, readConfigString (config, "card2_access_code", accessCode2), sizeof (accessCode2) - 1);
+		accessCode2[sizeof (accessCode2) - 1] = '\0'; // Ensure null-termination
 		toml_free (config);
 	}
 
@@ -316,12 +318,14 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 		const char *foundCardId1 = lookupCardId (accessCode1);
 		if (foundCardId1) {
 			chipId1[33] = foundCardId1;
+			free ((void *)foundCardId1);
 		} else {
 			addNewCard (accessCode1);
 		}
 		const char *foundCardId2 = lookupCardId (accessCode2);
 		if (foundCardId2) {
 			chipId2[33] = foundCardId2;
+			free ((void *)foundCardId2);
 		} else {
 			addNewCard (accessCode2);
 		}
@@ -329,7 +333,7 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 		// New file is auto-generated with 2 cards
 		FILE *cards_new = fopen (configPath ("cards.dat"), "w");
 		if (cards_new) {
-			char cardCountString[9];
+			char cardCountString[10];
 			u16 cardCount = 2;
 
 			srand (time (0));
