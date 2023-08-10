@@ -48,15 +48,10 @@ Keybindings P2_RIGHT_BLUE = {};
 const char *
 lookupCardId (const char *searchAccessCode) {
 	FILE *cards = fopen (configPath ("cards.dat"), "r");
-	int numItems;
-	fscanf (cards, "%d\n", &numItems);
+	char currentAccessCode[21];
+	char currentCardId[33];
 
-	for (int i = 0; i < numItems; ++i) {
-		char currentAccessCode[33];
-		char currentCardId[21];
-
-		fscanf (cards, "%20s %32s", currentAccessCode, currentCardId);
-
+	while (fscanf (cards, "%20s %32s", currentAccessCode, currentCardId) == 2) {
 		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
 			fclose (cards);
 			return strdup (currentCardId);
@@ -259,27 +254,24 @@ HOOK_DYNAMIC (i32, __stdcall, ws2_getaddrinfo, char *node, char *service, void *
 
 u32 inline generate_rand () { return rand () + rand () * rand () + rand (); }
 
-int
+bool
 addNewCard (const char *accessCode) {
-	FILE *file = fopen (configPath ("cards.dat"), "r+");
+	FILE *file = fopen (configPath ("cards.dat"), "a");
+	if (file == NULL) {
+		perror ("Error opening file cards.dat");
+		return false; // Return false to indicate failure
+	}
 
-	int numItems;
-	fscanf (file, "%d\n", &numItems);
-
-	// Increment by 1 and overwrite the number of items
-	fseek (file, 0, SEEK_SET);
-	fprintf (file, "%08d\n", numItems + 1);
-
-	// Generate chipId as 32-digit version of accessCode
+	// Generate chipId as 32-char hexadecimal
 	char chipId[33];
-	sprintf (chipId, "%32s", accessCode);
+	srand (time (0));
+	sprintf (chipId, "%032X", generate_rand ());
 
-	// Write the new line
-	fseek (file, 0, SEEK_END);
+	// Write the new line at the end
 	fprintf (file, "%s%s\n", accessCode, chipId);
 	fclose (file);
 
-	return 1; // Return 1 to indicate success
+	return true; // Return true to indicate success
 }
 
 i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
@@ -361,13 +353,10 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 		// New file is auto-generated with 2 cards
 		FILE *cards_new = fopen (configPath ("cards.dat"), "w");
 		if (cards_new) {
-			char cardCountString[10];
-			u16 cardCount = 2;
-
 			srand (time (0));
-			sprintf (cardCountString, "%08d\n", cardCount);
-			fprintf (cards_new, "%s\n", cardCountString);
+			sprintf (chipId1, "%032X", generate_rand ());
 			fprintf (cards_new, "%s%s\n", accessCode1, chipId1);
+			sprintf (chipId2, "%032X", generate_rand ());
 			fprintf (cards_new, "%s%s\n", accessCode2, chipId2);
 			fclose (cards_new);
 		}
