@@ -54,7 +54,7 @@ lookupCardId (const char *searchAccessCode) {
 	char currentCardId[33];
 
 	while (fscanf (cards, "%20s%32s", currentAccessCode, currentCardId) == 2) {
-		printInfo ("Current card: %s", currentCardId);
+		printInfo ("Current card: %s\n", currentCardId);
 		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
 			fclose (cards);
 			return strdup (currentCardId);
@@ -62,13 +62,13 @@ lookupCardId (const char *searchAccessCode) {
 	}
 
 	fclose (cards);
-	printWarning ("Unable to find card with access code %s", searchAccessCode);
+	printWarning ("Unable to find card with access code %s\n", searchAccessCode);
 	return NULL; // Not found
 }
 
 bool
 addNewCard (const char *accessCode, const char *chipId) {
-	printInfo ("Adding new card %s | ID: %s", accessCode, chipId);
+	printInfo ("Adding new card %s | ID: %s\n", accessCode, chipId);
 	FILE *file = fopen (configPath ("cards.dat"), "a");
 	if (file == NULL) {
 		perror ("Error opening file cards.dat");
