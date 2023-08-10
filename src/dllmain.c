@@ -45,6 +45,28 @@ Keybindings P2_LEFT_RED   = {};
 Keybindings P2_RIGHT_RED  = {};
 Keybindings P2_RIGHT_BLUE = {};
 
+const char *
+lookupCardId (const char *searchAccessCode) {
+	FILE *cards = fopen (configPath ("cards.dat"), "r");
+	int numItems;
+	fscanf (cards, "%d\n", &numItems);
+
+	for (int i = 0; i < numItems; ++i) {
+		char currentAccessCode[33];
+		char currentCardId[21];
+
+		fscanf (cards, "%20s %32s", currentAccessCode, currentCardId);
+
+		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
+			fclose (cards);
+			return strdup (currentCardId);
+		}
+	}
+
+	fclose (cards);
+	return NULL; // Not found
+}
+
 u16 __fastcall bnusio_GetAnalogIn (u8 which) {
 	switch (which) {
 	case 0: return ON_HIT (P1_LEFT_BLUE);  // Player 1 Left Blue
@@ -237,28 +259,6 @@ HOOK_DYNAMIC (i32, __stdcall, ws2_getaddrinfo, char *node, char *service, void *
 
 u32 inline generate_rand () { return rand () + rand () * rand () + rand (); }
 
-const char *
-lookupCardId (const char *searchAccessCode) {
-	FILE *cards = fopen (configPath ("cards.dat"), "r");
-	int numItems;
-	fscanf (cards, "%d\n", &numItems);
-
-	for (int i = 0; i < numItems; ++i) {
-		char currentAccessCode[33];
-		char currentCardId[21];
-
-		fscanf (cards, "%20s %32s", currentAccessCode, currentCardId);
-
-		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
-			fclose (cards);
-			return strdup (currentCardId);
-		}
-	}
-
-	fclose (cards);
-	return NULL; // Not found
-}
-
 int
 addNewCard (const char *accessCode) {
 	FILE *file = fopen (configPath ("cards.dat"), "r+");
@@ -272,7 +272,7 @@ addNewCard (const char *accessCode) {
 
 	// Generate chipId as 32-digit version of accessCode
 	char chipId[33];
-	sprintf (chipId, "%032s", accessCode);
+	sprintf (chipId, "%32s", accessCode);
 
 	// Write the new line
 	fseek (file, 0, SEEK_END);
