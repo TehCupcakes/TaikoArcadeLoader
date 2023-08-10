@@ -222,7 +222,7 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 					}
 				}
 
-				printWarning ("Scanning card: %s | ID: %s\n", accessCode1, chipId1);
+				printWarning ("Scanning card: %s | ID: %s\n", accessCode2, chipId2);
 				memcpy (cardData + 0x2C, chipId2, 33);
 				memcpy (cardData + 0x50, accessCode2, 21);
 				touchCallback (0, 0, cardData, touchData);
