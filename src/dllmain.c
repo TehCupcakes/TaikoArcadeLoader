@@ -79,7 +79,7 @@ addNewCard (const char *accessCode, const char *chipId) {
 	fprintf (file, "%s%s\n", accessCode, chipId);
 	fclose (file);
 
-	// Return chip id of new card
+	// Return true to indicate success
 	return true;
 }
 
@@ -176,6 +176,7 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 					const char *foundCardId1 = lookupCardId (accessCode1);
 					if (foundCardId1) {
 						strncpy (chipId1, foundCardId1, sizeof (chipId1) - 1);
+						chipId1[sizeof (chipId1) - 1] = '\0'; // Ensure null-termination
 						free ((void *)foundCardId1);
 					} else {
 						srand (time (0));
@@ -212,6 +213,7 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 					const char *foundCardId2 = lookupCardId (accessCode2);
 					if (foundCardId2) {
 						strncpy (chipId2, foundCardId2, sizeof (chipId2) - 1);
+						chipId2[sizeof (chipId2) - 1] = '\0'; // Ensure null-termination
 						free ((void *)foundCardId2);
 					} else {
 						srand (time (0));
@@ -347,6 +349,7 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 		const char *foundCardId1 = lookupCardId (accessCode1);
 		if (foundCardId1) {
 			strncpy (chipId1, foundCardId1, sizeof (chipId1) - 1);
+			chipId1[sizeof (chipId1) - 1] = '\0'; // Ensure null-termination
 			free ((void *)foundCardId1);
 		} else {
 			srand (time (0));
@@ -356,6 +359,7 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 		const char *foundCardId2 = lookupCardId (accessCode2);
 		if (foundCardId2) {
 			strncpy (chipId2, foundCardId2, sizeof (chipId2) - 1);
+			chipId2[sizeof (chipId2) - 1] = '\0'; // Ensure null-termination
 			free ((void *)foundCardId2);
 		} else {
 			srand (time (0));
