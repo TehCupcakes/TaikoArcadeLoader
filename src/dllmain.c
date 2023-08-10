@@ -128,6 +128,20 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 				}
 			}
 			if (!hasInserted) {
+				// Re-read the config file in case it has changed since the app started up
+				toml_table_t *config = openConfig (configPath ("config.toml"));
+				if (config) {
+					// Look up access code and chip id from cards.dat using the value in config
+					strncpy (accessCode1, readConfigString (config, "card1_access_code", accessCode1), sizeof (accessCode1) - 1);
+					accessCode1[sizeof (accessCode1) - 1] = '\0'; // Ensure null-termination
+
+					const char *foundCardId1 = lookupCardId (accessCode1);
+					if (foundCardId1) {
+						strncpy (chipId1, foundCardId1, sizeof (chipId1) - 1);
+						free ((void *)foundCardId1);
+					}
+				}
+
 				memcpy (cardData + 0x2C, chipId1, 33);
 				memcpy (cardData + 0x50, accessCode1, 21);
 				touchCallback (0, 0, cardData, touchData);
@@ -145,6 +159,20 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 				}
 			}
 			if (!hasInserted) {
+				// Re-read the config file in case it has changed since the app started up
+				toml_table_t *config = openConfig (configPath ("config.toml"));
+				if (config) {
+					// Look up access code and chip id from cards.dat using the value in config
+					strncpy (accessCode2, readConfigString (config, "card2_access_code", accessCode2), sizeof (accessCode2) - 1);
+					accessCode2[sizeof (accessCode2) - 1] = '\0'; // Ensure null-termination
+
+					const char *foundCardId2 = lookupCardId (accessCode2);
+					if (foundCardId2) {
+						strncpy (chipId2, foundCardId2, sizeof (chipId2) - 1);
+						free ((void *)foundCardId2);
+					}
+				}
+
 				memcpy (cardData + 0x2C, chipId2, 33);
 				memcpy (cardData + 0x50, accessCode2, 21);
 				touchCallback (0, 0, cardData, touchData);
@@ -317,14 +345,14 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 	if (stat ("cards.dat", &buffer) == 0) {
 		const char *foundCardId1 = lookupCardId (accessCode1);
 		if (foundCardId1) {
-			chipId1[33] = foundCardId1;
+			strncpy (chipId1, foundCardId1, sizeof (chipId1) - 1);
 			free ((void *)foundCardId1);
 		} else {
 			addNewCard (accessCode1);
 		}
 		const char *foundCardId2 = lookupCardId (accessCode2);
 		if (foundCardId2) {
-			chipId2[33] = foundCardId2;
+			strncpy (chipId2, foundCardId2, sizeof (chipId2) - 1);
 			free ((void *)foundCardId2);
 		} else {
 			addNewCard (accessCode2);
