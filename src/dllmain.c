@@ -53,7 +53,8 @@ lookupCardId (const char *searchAccessCode) {
 	char currentAccessCode[21];
 	char currentCardId[33];
 
-	while (fscanf (cards, "%20s%32X", currentAccessCode, currentCardId) == 2) {
+	while (fscanf (cards, "%20s%32s", currentAccessCode, currentCardId) == 2) {
+		printInfo ("Current card: %s", currentCardId);
 		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
 			fclose (cards);
 			return strdup (currentCardId);
@@ -61,11 +62,13 @@ lookupCardId (const char *searchAccessCode) {
 	}
 
 	fclose (cards);
+	printWarning ("Unable to find card with access code %s", searchAccessCode);
 	return NULL; // Not found
 }
 
 bool
 addNewCard (const char *accessCode, const char *chipId) {
+	printInfo ("Adding new card %s | ID: %s", accessCode, chipId);
 	FILE *file = fopen (configPath ("cards.dat"), "a");
 	if (file == NULL) {
 		perror ("Error opening file cards.dat");
@@ -181,6 +184,7 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 					}
 				}
 
+				printWarning ("Scanning card: %s | ID: %s\n", accessCode1, chipId1);
 				memcpy (cardData + 0x2C, chipId1, 33);
 				memcpy (cardData + 0x50, accessCode1, 21);
 				touchCallback (0, 0, cardData, touchData);
@@ -216,6 +220,7 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 					}
 				}
 
+				printWarning ("Scanning card: %s | ID: %s\n", accessCode1, chipId1);
 				memcpy (cardData + 0x2C, chipId2, 33);
 				memcpy (cardData + 0x50, accessCode2, 21);
 				touchCallback (0, 0, cardData, touchData);
