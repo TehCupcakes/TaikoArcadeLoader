@@ -45,13 +45,15 @@ Keybindings P2_LEFT_RED   = {};
 Keybindings P2_RIGHT_RED  = {};
 Keybindings P2_RIGHT_BLUE = {};
 
+u32 inline generate_rand () { return rand () + rand () * rand () + rand (); }
+
 const char *
 lookupCardId (const char *searchAccessCode) {
 	FILE *cards = fopen (configPath ("cards.dat"), "r");
 	char currentAccessCode[21];
 	char currentCardId[33];
 
-	while (fscanf (cards, "%20s %32s", currentAccessCode, currentCardId) == 2) {
+	while (fscanf (cards, "%20s%32X", currentAccessCode, currentCardId) == 2) {
 		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
 			fclose (cards);
 			return strdup (currentCardId);
@@ -60,6 +62,22 @@ lookupCardId (const char *searchAccessCode) {
 
 	fclose (cards);
 	return NULL; // Not found
+}
+
+bool
+addNewCard (const char *accessCode, const char *chipId) {
+	FILE *file = fopen (configPath ("cards.dat"), "a");
+	if (file == NULL) {
+		perror ("Error opening file cards.dat");
+		return false; // Return null to indicate failure
+	}
+
+	// Write the new line at the end
+	fprintf (file, "%s%s\n", accessCode, chipId);
+	fclose (file);
+
+	// Return chip id of new card
+	return true;
 }
 
 u16 __fastcall bnusio_GetAnalogIn (u8 which) {
@@ -156,6 +174,10 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 					if (foundCardId1) {
 						strncpy (chipId1, foundCardId1, sizeof (chipId1) - 1);
 						free ((void *)foundCardId1);
+					} else {
+						srand (time (0));
+						sprintf (chipId1, "%032X", generate_rand ());
+						addNewCard (accessCode1, chipId1);
 					}
 				}
 
@@ -187,6 +209,10 @@ u16 __fastcall bnusio_GetCoin (i32 a1) {
 					if (foundCardId2) {
 						strncpy (chipId2, foundCardId2, sizeof (chipId2) - 1);
 						free ((void *)foundCardId2);
+					} else {
+						srand (time (0));
+						sprintf (chipId2, "%032X", generate_rand ());
+						addNewCard (accessCode2, chipId2);
 					}
 				}
 
@@ -250,28 +276,6 @@ HOOK_DYNAMIC (i32, __stdcall, bngrw_reqWaitTouch, u32 a1, i32 a2, u32 a3, callba
 
 HOOK_DYNAMIC (i32, __stdcall, ws2_getaddrinfo, char *node, char *service, void *hints, void *out) {
 	return originalws2_getaddrinfo (server, service, hints, out);
-}
-
-u32 inline generate_rand () { return rand () + rand () * rand () + rand (); }
-
-bool
-addNewCard (const char *accessCode) {
-	FILE *file = fopen (configPath ("cards.dat"), "a");
-	if (file == NULL) {
-		perror ("Error opening file cards.dat");
-		return false; // Return false to indicate failure
-	}
-
-	// Generate chipId as 32-char hexadecimal
-	char chipId[33];
-	srand (time (0));
-	sprintf (chipId, "%032X", generate_rand ());
-
-	// Write the new line at the end
-	fprintf (file, "%s%s\n", accessCode, chipId);
-	fclose (file);
-
-	return true; // Return true to indicate success
 }
 
 i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
@@ -340,14 +344,18 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 			strncpy (chipId1, foundCardId1, sizeof (chipId1) - 1);
 			free ((void *)foundCardId1);
 		} else {
-			addNewCard (accessCode1);
+			srand (time (0));
+			sprintf (chipId1, "%032X", generate_rand ());
+			addNewCard (accessCode1, chipId1);
 		}
 		const char *foundCardId2 = lookupCardId (accessCode2);
 		if (foundCardId2) {
 			strncpy (chipId2, foundCardId2, sizeof (chipId2) - 1);
 			free ((void *)foundCardId2);
 		} else {
-			addNewCard (accessCode2);
+			srand (time (0));
+			sprintf (chipId2, "%032X", generate_rand ());
+			addNewCard (accessCode2, chipId2);
 		}
 	} else {
 		// New file is auto-generated with 2 cards
