@@ -2,6 +2,7 @@
 #include "helpers.h"
 #include "poll.h"
 #include <stdio.h>
+#include <sys/stat.h>
 #include <time.h>
 
 bool testEnabled     = false;
@@ -208,6 +209,51 @@ HOOK_DYNAMIC (i32, __stdcall, ws2_getaddrinfo, char *node, char *service, void *
 
 u32 inline generate_rand () { return rand () + rand () * rand () + rand (); }
 
+const char *
+lookupCardId (const char *searchAccessCode) {
+	FILE *cards = fopen (configPath ("cards.dat"), "r");
+	int numItems;
+	fscanf (cards, "%d", &numItems);
+
+	for (int i = 0; i < numItems; ++i) {
+		char currentAccessCode[33];
+		char currentCardId[21];
+
+		fscanf (cards, "%20s %32s", currentAccessCode, currentCardId);
+
+		if (strcmp (searchAccessCode, currentAccessCode) == 0) {
+			fclose (cards);
+			return currentCardId;
+		}
+	}
+
+	fclose (cards);
+	return NULL; // Not found
+}
+
+int
+addNewCard (const char *accessCode) {
+	FILE *file = fopen (configPath ("cards.dat"), "r+");
+
+	int numItems;
+	fscanf (file, "%d", &numItems);
+
+	// Increment by 1 and overwrite the number of items
+	fseek (file, 0, SEEK_SET);
+	fprintf (file, "%08d\n", numItems + 1);
+
+	// Generate chipId as 32-digit version of accessCode
+	char chipId[33];
+	sprintf (chipId, "%032d", accessCode);
+
+	// Write the new line
+	fseek (file, 0, SEEK_END);
+	fprintf (file, "%s%s\n", accessCode, chipId);
+	fclose (file);
+
+	return 1; // Return 1 to indicate success
+}
+
 i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 	if (cause == DLL_PROCESS_DETACH) DisposePoll ();
 	if (cause != DLL_PROCESS_ATTACH) return true;
@@ -256,30 +302,42 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 
 	toml_table_t *config = openConfig (configPath ("config.toml"));
 	if (config) {
-		drumMax = readConfigInt (config, "drumMax", drumMax);
-		drumMin = readConfigInt (config, "drumMin", drumMin);
-		server  = readConfigString (config, "server", server);
+		drumMax         = readConfigInt (config, "drumMax", drumMax);
+		drumMin         = readConfigInt (config, "drumMin", drumMin);
+		server          = readConfigString (config, "server", server);
+		accessCode1[21] = readConfigString (config, "card1_access_code", accessCode1);
+		accessCode2[21] = readConfigString (config, "card2_access_code", accessCode1);
 		toml_free (config);
 	}
 
-	FILE *cards = fopen (configPath ("cards.dat"), "r");
-	if (cards) {
-		fread (accessCode1, 1, 20, cards);
-		fread (accessCode2, 1, 20, cards);
-		fread (chipId1, 1, 32, cards);
-		fread (chipId2, 1, 32, cards);
-		fclose (cards);
+	struct stat buffer;
+
+	if (stat ("cards.dat", &buffer) == 0) {
+		const char *foundCardId1 = lookupCardId (accessCode1);
+		if (foundCardId1) {
+			chipId1[33] = foundCardId1;
+		} else {
+			addNewCard (accessCode1);
+		}
+		const char *foundCardId2 = lookupCardId (accessCode2);
+		if (foundCardId2) {
+			chipId2[33] = foundCardId2;
+		} else {
+			addNewCard (accessCode2);
+		}
 	} else {
+		// New file is auto-generated with 2 cards
 		FILE *cards_new = fopen (configPath ("cards.dat"), "w");
 		if (cards_new) {
+			char cardCountString[9];
+			u16 cardCount = 2;
+
 			srand (time (0));
-			sprintf (accessCode1, "%020d", generate_rand ());
+			sprintf (cardCountString, "%08d\n", cardCount);
+			fwrite (cardCountString, 1, 8, cards_new);
 			fwrite (accessCode1, 1, 20, cards_new);
-			sprintf (accessCode2, "%020d", generate_rand ());
-			fwrite (accessCode2, 1, 20, cards_new);
-			sprintf (chipId1, "%032X", generate_rand ());
 			fwrite (chipId1, 1, 32, cards_new);
-			sprintf (chipId2, "%032X", generate_rand ());
+			fwrite (accessCode2, 1, 20, cards_new);
 			fwrite (chipId2, 1, 32, cards_new);
 			fclose (cards_new);
 		}
