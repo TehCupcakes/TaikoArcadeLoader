@@ -4,5 +4,6 @@ drumMin = 10000
 
 server = "127.0.0.1"
 pcb_id = "TAL0000001"
+
 card1_access_code = "00000000000000000001"
 card2_access_code = "00000000000000000002"

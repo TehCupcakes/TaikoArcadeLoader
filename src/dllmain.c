@@ -213,7 +213,7 @@ const char *
 lookupCardId (const char *searchAccessCode) {
 	FILE *cards = fopen (configPath ("cards.dat"), "r");
 	int numItems;
-	fscanf (cards, "%d", &numItems);
+	fscanf (cards, "%d\n", &numItems);
 
 	for (int i = 0; i < numItems; ++i) {
 		char currentAccessCode[33];
@@ -236,7 +236,7 @@ addNewCard (const char *accessCode) {
 	FILE *file = fopen (configPath ("cards.dat"), "r+");
 
 	int numItems;
-	fscanf (file, "%d", &numItems);
+	fscanf (file, "%d\n", &numItems);
 
 	// Increment by 1 and overwrite the number of items
 	fseek (file, 0, SEEK_SET);
@@ -334,11 +334,9 @@ i32 __stdcall DllMain (HMODULE mod, DWORD cause, void *ctx) {
 
 			srand (time (0));
 			sprintf (cardCountString, "%08d\n", cardCount);
-			fwrite (cardCountString, 1, 8, cards_new);
-			fwrite (accessCode1, 1, 20, cards_new);
-			fwrite (chipId1, 1, 32, cards_new);
-			fwrite (accessCode2, 1, 20, cards_new);
-			fwrite (chipId2, 1, 32, cards_new);
+			fprintf (cards_new, "%s\n", cardCountString);
+			fprintf (cards_new, "%s%s\n", accessCode1, chipId1);
+			fprintf (cards_new, "%s%s\n", accessCode2, chipId2);
 			fclose (cards_new);
 		}
 	}
